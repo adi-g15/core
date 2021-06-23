@@ -62,13 +62,14 @@ public slots:
     }
 
 private:
+    void autostartScript();
     void initEnvironments();
     void initFontDpi();
     void initLanguage();
     void initScreenScaleFactors();
     bool syncDBusEnvironment();
     void importSystemdEnvrionment();
-    void createConfigDirectory();
+    bool createConfigDirectory();
     int runSync(const QString &program, const QStringList &args, const QStringList &env = {});
 
 private:

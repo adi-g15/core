@@ -90,12 +90,14 @@ Application::Application(int &argc, char **argv)
     QDBusConnection::sessionBus().registerService(QStringLiteral("org.cutefish.Session"));
     QDBusConnection::sessionBus().registerObject(QStringLiteral("/Session"), this);
 
-    createConfigDirectory();
+    auto configdir_created = createConfigDirectory();
     initLanguage();
     initScreenScaleFactors();
     initFontDpi();
 
     initEnvironments();
+
+    if(configdir_created) autostartScript();
 
     if (!syncDBusEnvironment()) {
         // Startup error
@@ -110,6 +112,20 @@ Application::Application(int &argc, char **argv)
     importSystemdEnvrionment();
 
     QTimer::singleShot(100, m_processManager, &ProcessManager::start);
+}
+
+void Application::autostartScript()
+{
+    QString config_dir = ".config/cutefishos";
+    if( QDir::home().exists( config_dir + "/autostart" ) ) {
+        qDebug() << "Loading autostart script";
+        QProcess process;
+        process.setWorkingDirectory(config_dir);
+        process.start("sh", {"./autostart"});
+        if( process.exitCode() != 0 ) {
+               qDebug() << "Failed to execute the autostart script";
+        }
+    }
 }
 
 void Application::initEnvironments()
@@ -248,12 +264,16 @@ void Application::importSystemdEnvrionment()
     }
 }
 
-void Application::createConfigDirectory()
+bool Application::createConfigDirectory()
 {
     const QString configDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
 
-    if (!QDir().mkpath(configDir))
+    if (!QDir().mkpath(configDir)) {
         qDebug() << "Could not create config directory XDG_CONFIG_HOME: " << configDir;
+        return false;
+    }
+
+    return true;
 }
 
 int Application::runSync(const QString &program, const QStringList &args, const QStringList &env)
